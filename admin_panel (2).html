@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="uz" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nina — Admin Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --bg: #0d0f1a;
+  --surface: #13162a;
+  --surface2: #1c2038;
+  --surface3: #232745;
+  --border: #2a2f50;
+  --accent: #5b8df8;
+  --accent-hover: #4a7ef0;
+  --accent2: #a78bfa;
+  --green: #34d399;
+  --red: #f87171;
+  --yellow: #fbbf24;
+  --orange: #fb923c;
+  --text: #e2e8f8;
+  --text2: #a0aec8;
+  --muted: #5a6380;
+  --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  --twa-bg: transparent;
+}
+[data-theme="light"] {
+  --bg: #f0f2f8;
+  --surface: #ffffff;
+  --surface2: #f4f6fc;
+  --surface3: #e8ecf8;
+  --border: #dde2f0;
+  --accent: #4a7ef0;
+  --accent-hover: #3a6ee0;
+  --accent2: #7c6af7;
+  --green: #059669;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --orange: #ea580c;
+  --text: #1e2540;
+  --text2: #4a5270;
+  --muted: #8892b0;
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --twa-bg: transparent;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ══════════════════════════════════════════════
+   LOGIN
+══════════════════════════════════════════════ */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg);
+}
+[data-theme="dark"] .login-page {
+  background: radial-gradient(ellipse at 40% 40%, #1a1f45 0%, #0d0f1a 65%);
+}
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: var(--shadow);
+}
+.login-logo { font-size: 44px; margin-bottom: 10px; }
+.login-title { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+.login-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+
+/* ══════════════════════════════════════════════
+   LAYOUT — DESKTOP SIDEBAR
+══════════════════════════════════════════════ */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 230px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  transition: transform 0.3s;
+}
+.sidebar-logo {
+  padding: 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-emoji { font-size: 28px; }
+.logo-name { font-size: 15px; font-weight: 800; line-height: 1.2; }
+.logo-ver { font-size: 10px; color: var(--muted); font-weight: 600; }
+
+nav { flex: 1; padding: 10px 8px; overflow-y: auto; }
+.nav-section { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding: 10px 8px 4px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  transition: all 0.15s;
+  margin-bottom: 1px;
+  user-select: none;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(91,141,248,0.15); color: var(--accent); }
+.nav-item .ni { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.sidebar-bottom { padding: 8px; border-top: 1px solid var(--border); }
+
+.main { margin-left: 230px; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* ══════════════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════════════ */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.menu-btn { display: none; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text); padding: 4px; }
+.topbar-title { font-size: 15px; font-weight: 800; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.topbar-date { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+.content { padding: 16px 20px; flex: 1; }
+
+/* ══════════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-1px); }
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+.stat-card.green::before { background: var(--green); }
+.stat-card.red::before { background: var(--red); }
+.stat-card.purple::before { background: var(--accent2); }
+.stat-card.orange::before { background: var(--orange); }
+
+.stat-icon { font-size: 20px; margin-bottom: 6px; }
+.stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  margin: 4px 0;
+  color: var(--text);
+}
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+.stat-change { font-size: 11px; margin-top: 4px; font-weight: 600; }
+.stat-change.up { color: var(--green); }
+.stat-change.down { color: var(--red); }
+
+/* ══════════════════════════════════════════════
+   FORMS
+══════════════════════════════════════════════ */
+.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.fg { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+.fg label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+
+input, select, textarea {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  font-family: 'Nunito', sans-serif;
+  transition: border-color 0.2s, background 0.2s;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  background: var(--surface3);
+}
+select option { background: var(--surface2); }
+textarea { resize: vertical; min-height: 80px; }
+
+/* ══════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════ */
+.btn {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+  font-family: 'Nunito', sans-serif;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-success { background: var(--green); color: #052e16; }
+.btn-success:hover { opacity: 0.9; }
+.btn-danger { background: var(--red); color: white; }
+.btn-danger:hover { opacity: 0.9; }
+.btn-warning { background: var(--yellow); color: #1c0a00; }
+.btn-ghost { background: var(--surface2); color: var(--text); border: 1.5px solid var(--border); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--surface3); }
+.btn-purple { background: var(--accent2); color: white; }
+.btn-sm { padding: 6px 11px; font-size: 12px; }
+.btn-xs { padding: 4px 8px; font-size: 11px; border-radius: 6px; }
+.btn-icon { padding: 7px; border-radius: 8px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* ══════════════════════════════════════════════
+   TABLE
+══════════════════════════════════════════════ */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  white-space: nowrap;
+}
+td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(91,141,248,0.04); }
+
+/* ══════════════════════════════════════════════
+   BADGE
+══════════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 3px;
+  white-space: nowrap;
+}
+.badge-blue   { background: rgba(91,141,248,0.15); color: var(--accent); }
+.badge-green  { background: rgba(52,211,153,0.15); color: var(--green); }
+.badge-red    { background: rgba(248,113,113,0.15); color: var(--red); }
+.badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.badge-purple { background: rgba(167,139,250,0.15); color: var(--accent2); }
+.badge-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+.badge-gray   { background: var(--surface2); color: var(--muted); }
+
+/* ══════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════ */
+.modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+  padding: 0;
+}
+.modal-bg.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 32px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 92vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+}
+.modal-bg.open .modal { transform: translateY(0); }
+
+/* Desktop modal centered */
+@media (min-width: 600px) {
+  .modal-bg { align-items: center; padding: 20px; }
+  .modal { border-radius: 16px; transform: translateY(20px) scale(0.97); }
+  .modal-bg.open .modal { transform: translateY(0) scale(1); }
+}
+
+.modal-handle {
+  width: 40px; height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: -8px auto 16px;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.modal-head h3 { font-size: 16px; font-weight: 800; }
+.modal-close {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.modal-close:hover { color: var(--red); border-color: var(--red); }
+
+/* ══════════════════════════════════════════════
+   ALERT
+══════════════════════════════════════════════ */
+.alert {
+  padding: 10px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-success { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--green); }
+.alert-error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+.alert-info    { background: rgba(91,141,248,0.1); border: 1px solid rgba(91,141,248,0.3); color: var(--accent); }
+
+/* ══════════════════════════════════════════════
+   CHART
+══════════════════════════════════════════════ */
+.chart-wrap { padding-top: 4px; }
+.chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+.cb {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  background: linear-gradient(to top, var(--accent), var(--accent2));
+}
+.cb:hover { opacity: 0.7; }
+.cb.today { background: linear-gradient(to top, var(--green), #34d39988); }
+.cb .tip {
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  display: none;
+  font-family: 'JetBrains Mono', monospace;
+  z-index: 10;
+  font-weight: 600;
+}
+.cb:hover .tip { display: block; }
+.chart-labels { display: flex; gap: 3px; margin-top: 5px; }
+.cl { flex: 1; text-align: center; font-size: 9px; color: var(--muted); font-weight: 700; }
+
+/* ══════════════════════════════════════════════
+   AVATAR
+══════════════════════════════════════════════ */
+.avatar {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: white;
+}
+
+/* ══════════════════════════════════════════════
+   SEARCH
+══════════════════════════════════════════════ */
+.search-wrap { position: relative; }
+.search-wrap input { padding-left: 34px; }
+.search-wrap::before { content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; z-index: 1; pointer-events: none; }
+
+/* ══════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════ */
+.tabs { display: flex; gap: 2px; background: var(--surface2); padding: 3px; border-radius: 9px; border: 1px solid var(--border); }
+.tab { padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
+.tab.active { background: var(--accent); color: white; }
+
+/* ══════════════════════════════════════════════
+   TOGGLE (switch)
+══════════════════════════════════════════════ */
+.toggle-wrap { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.toggle-label { font-size: 13px; font-weight: 600; }
+.toggle-sub { font-size: 11px; color: var(--muted); }
+.toggle {
+  position: relative; width: 44px; height: 24px;
+  background: var(--border); border-radius: 12px;
+  cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--green); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: left 0.2s;
+}
+.toggle.on::after { left: 23px; }
+
+/* ══════════════════════════════════════════════
+   MOBILE NAV OVERLAY
+══════════════════════════════════════════════ */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 150;
+}
+.sidebar-overlay.open { display: block; }
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+.toast-container {
+  position: fixed;
+  bottom: 24px; right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow);
+  animation: slideUp 0.3s ease;
+  pointer-events: all;
+}
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error   { border-color: var(--red); color: var(--red); }
+.toast.info    { border-color: var(--accent); color: var(--accent); }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ══════════════════════════════════════════════
+   WORKER CARD (mobile)
+══════════════════════════════════════════════ */
+.worker-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ══════════════════════════════════════════════
+   SETTINGS PAGE
+══════════════════════════════════════════════ */
+.setting-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+.setting-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ══════════════════════════════════════════════
+   REPORT / PDF PREVIEW
+══════════════════════════════════════════════ */
+.report-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.report-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.report-icon { font-size: 28px; margin-bottom: 8px; }
+.report-name { font-size: 14px; font-weight: 800; margin-bottom: 3px; }
+.report-desc { font-size: 12px; color: var(--muted); }
+
+/* ══════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════ */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+.empty-state .ei { font-size: 40px; margin-bottom: 10px; }
+.empty-state p { font-size: 13px; font-weight: 600; }
+
+/* ══════════════════════════════════════════════
+   LOADING
+══════════════════════════════════════════════ */
+.spinner {
+  display: inline-block;
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 260px;
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .menu-btn { display: flex; }
+  .grid4 { grid-template-columns: repeat(2,1fr); }
+  .grid3 { grid-template-columns: repeat(2,1fr); }
+  .grid2 { grid-template-columns: 1fr; }
+  .content { padding: 12px 14px; }
+  .hide-mobile { display: none !important; }
+  .topbar { padding: 0 14px; }
+  .topbar-date { display: none; }
+}
+@media (max-width: 420px) {
+  .grid4 { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-val { font-size: 18px; }
+}
+
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+.hidden  { display: none !important; }
+.flex    { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.ml-auto { margin-left: auto; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.p-3  { padding: 12px; }
+.text-muted  { color: var(--muted); }
+.text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+.fw7 { font-weight: 700; }
+.fw8 { font-weight: 800; }
+.green  { color: var(--green); }
+.red    { color: var(--red); }
+.accent { color: var(--accent); }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.w100 { width: 100%; }
+hr.div { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div style="font-size:36px;">🏭</div>
+  <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
+  <span id="loadingText">Yuklanmoqda...</span>
+</div>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="login-page hidden">
+  <div class="login-card">
+    <div class="login-logo">🏭</div>
+    <div class="login-title">Nina Admin</div>
+    <div class="login-sub" id="loginSubtext">Ishchilar boshqaruv tizimi</div>
+    <div id="loginAlert"></div>
+    <div class="fg mb-3">
+      <label id="lbl-login">Login</label>
+      <input id="loginUser" type="text" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="fg mb-4">
+      <label id="lbl-pass">Parol</label>
+      <input id="loginPass" type="password" placeholder="••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">
+      <span id="lbl-signin">Kirish</span> →
+    </button>
+    <p class="text-muted text-xs mt-2" style="text-align:center;">admin / admin123</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appPage" class="app hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-emoji">🏭</div>
+      <div>
+        <div class="logo-name">Nina</div>
+        <div class="logo-ver">Admin Panel v2.0</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-section" id="ns-main">ASOSIY</div>
+      <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <span class="ni">📊</span> <span data-i18n="nav_dashboard">Dashboard</span>
+      </div>
+      <div class="nav-item" id="nav-logs" onclick="showPage('logs')">
+        <span class="ni">📝</span> <span data-i18n="nav_logs">Yozuvlar</span>
+      </div>
+      <div class="nav-item" id="nav-reports" onclick="showPage('reports')">
+        <span class="ni">📈</span> <span data-i18n="nav_reports">Hisobotlar</span>
+      </div>
+
+      <div class="nav-section" id="ns-manage">BOSHQARUV</div>
+      <div class="nav-item" id="nav-workers" onclick="showPage('workers')">
+        <span class="ni">👥</span> <span data-i18n="nav_workers">Ishchilar</span>
+      </div>
+      <div class="nav-item" id="nav-departments" onclick="showPage('departments')">
+        <span class="ni">🏢</span> <span data-i18n="nav_departments">Bo'limlar</span>
+      </div>
+      <div class="nav-item" id="nav-products" onclick="showPage('products')">
+        <span class="ni">📦</span> <span data-i18n="nav_products">Mahsulotlar</span>
+      </div>
+      <div class="nav-item" id="nav-manual" onclick="showPage('manual')">
+        <span class="ni">➕</span> <span data-i18n="nav_manual">Qo'lda Kiritish</span>
+      </div>
+
+      <div class="nav-section" id="ns-system">TIZIM</div>
+      <div class="nav-item" id="nav-settings" onclick="showPage('settings')">
+        <span class="ni">⚙️</span> <span data-i18n="nav_settings">Sozlamalar</span>
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="nav-item" onclick="logout()">
+        <span class="ni">🚪</span> <span data-i18n="nav_logout">Chiqish</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="topbar-title" id="pageTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="todayDate"></span>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="refreshData()" title="Yangilash">🔄</button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="toggleTheme()" id="themeBtn" title="Tema">🌙</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ════════════════════════════════
+           DASHBOARD
+      ════════════════════════════════ -->
+      <div id="page-dashboard">
+        <div class="grid4" id="statGrid">
+          <div class="stat-card green">
+            <div class="stat-icon">💰</div>
+            <div class="stat-val" id="s-today">—</div>
+            <div class="stat-label" data-i18n="stat_today_income">Bugungi daromad</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">👷</div>
+            <div class="stat-val" id="s-workers">—</div>
+            <div class="stat-label" data-i18n="stat_workers">Faol ishchilar</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-icon">📦</div>
+            <div class="stat-val" id="s-items">—</div>
+            <div class="stat-label" data-i18n="stat_items">Bugun bajarilgan</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-icon">📅</div>
+            <div class="stat-val" id="s-month">—</div>
+            <div class="stat-label" data-i18n="stat_month">30 kunlik</div>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📈 <span data-i18n="chart_title">30 Kunlik Grafik</span></div>
+            </div>
+            <div class="chart-wrap">
+              <div class="chart-bars" id="chartBars"></div>
+              <div class="chart-labels" id="chartLabels"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🏆 <span data-i18n="top_workers">Bugungi TOP</span></div>
+            </div>
+            <div id="topList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🕐 <span data-i18n="recent_logs">So'nggi Yozuvlar</span></div>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('logs')">
+              <span data-i18n="see_all">Barchasi</span> →
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="th_worker">Ishchi</th>
+                  <th data-i18n="th_dept" class="hide-mobile">Bo'lim</th>
+                  <th data-i18n="th_product">Mahsulot</th>
+                  <th data-i18n="th_qty">Soni</th>
+                  <th data-i18n="th_sum">Summa</th>
+                  <th data-i18n="th_by" class="hide-mobile">Kim</th>
+                  <th data-i18n="th_time">Vaqt</th>
+                </tr>
+              </thead>
+              <tbody id="recentTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           ISHCHILAR
+      ════════════════════════════════ -->
+      <div id="page-workers" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">👥 <span data-i18n="nav_workers">Ishchilar</span></div>
+            <div class="flex gap-2">
+              <div class="search-wrap">
+                <input id="workerSearch" data-i18n-ph="search_ph" placeholder="Qidirish..." oninput="renderWorkers()" style="width:180px;">
+              </div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="th_worker">Ishchi</th>
+                  <th data-i18n="th_phone" class="hide-mobile">Telefon</th>
+                  <th data-i18n="th_dept">Bo'lim</th>
+                  <th data-i18n="th_today" class="hide-mobile">Bugun</th>
+                  <th data-i18n="th_status">Holat</th>
+                  <th data-i18n="th_action">Amal</th>
+                </tr>
+              </thead>
+              <tbody id="workersTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           BO'LIMLAR
+      ════════════════════════════════ -->
+      <div id="page-departments" class="hidden">
+        <div class="card mb-3">
+          <div class="card-title mb-3">➕ <span data-i18n="add_dept">Yangi Bo'lim</span></div>
+          <div id="deptAlert"></div>
+          <div class="form-row">
+            <div class="fg">
+              <label data-i18n="dept_name_lbl">Bo'lim nomi</label>
+              <input id="deptName" data-i18n-ph="dept_name_ph" placeholder="Masalan: Tikuvchilar">
+            </div>
+            <button class="btn btn-primary" onclick="addDepartment()">
+              <span data-i18n="btn_add">Qo'shish</span>
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title mb-3">🏢 <span data-i18n="all_depts">Barcha Bo'limlar</span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="th_name">Nomi</th>
+                  <th data-i18n="th_products">Mahsulotlar</th>
+                  <th data-i18n="th_workers_count">Ishchilar</th>
+                  <th data-i18n="th_status">Holat</th>
+                  <th data-i18n="th_action">Amal</th>
+                </tr>
+              </thead>
+              <tbody id="deptTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           MAHSULOTLAR
+      ════════════════════════════════ -->
+      <div id="page-products" class="hidden">
+        <div class="card mb-3">
+          <div class="card-title mb-3">➕ <span data-i18n="add_product">Yangi Mahsulot</span></div>
+          <div id="prodAlert"></div>
+          <div class="form-row">
+            <div class="fg">
+              <label data-i18n="th_dept">Bo'lim</label>
+              <select id="prodDept"></select>
+            </div>
+            <div class="fg">
+              <label data-i18n="th_name">Nomi</label>
+              <input id="prodName" placeholder="Mahsulot nomi">
+            </div>
+            <div class="fg" style="max-width:120px;">
+              <label data-i18n="th_code">Kodi</label>
+              <input id="prodCode" placeholder="AVR-001">
+            </div>
+            <div class="fg" style="max-width:140px;">
+              <label data-i18n="th_price">Narxi (so'm)</label>
+              <input id="prodPrice" type="number" placeholder="5000">
+            </div>
+            <button class="btn btn-primary" onclick="addProduct()">
+              <span data-i18n="btn_add">Qo'shish</span>
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📦 <span data-i18n="all_products">Mahsulotlar</span></div>
+            <div class="flex gap-2">
+              <div class="search-wrap">
+                <input id="prodSearch" placeholder="Qidirish..." oninput="renderProducts()" style="width:150px;">
+              </div>
+              <select id="prodDeptFilter" onchange="renderProducts()" style="width:130px;">
+                <option value="" data-i18n="all_depts_opt">Barchasi</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="th_dept">Bo'lim</th>
+                  <th data-i18n="th_name">Nomi</th>
+                  <th data-i18n="th_code">Kodi</th>
+                  <th data-i18n="th_price">Narxi</th>
+                  <th data-i18n="th_status">Holat</th>
+                  <th data-i18n="th_action">Amal</th>
+                </tr>
+              </thead>
+              <tbody id="prodTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           YOZUVLAR
+      ════════════════════════════════ -->
+      <div id="page-logs" class="hidden">
+        <div class="card mb-3">
+          <div class="card-header">
+            <div class="card-title">📝 <span data-i18n="nav_logs">Yozuvlar</span></div>
+            <div class="flex gap-2 flex-wrap">
+              <div class="tabs" id="logsTabs">
+                <div class="tab active" onclick="setLogsFilter('today',this)" data-i18n="tab_today">Bugun</div>
+                <div class="tab" onclick="setLogsFilter('week',this)" data-i18n="tab_week">Hafta</div>
+                <div class="tab" onclick="setLogsFilter('all',this)" data-i18n="tab_all">Barchasi</div>
+              </div>
+              <div class="search-wrap">
+                <input id="logsSearch" placeholder="Qidirish..." oninput="renderLogs()" style="width:150px;">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="th_worker">Ishchi</th>
+                  <th data-i18n="th_dept" class="hide-mobile">Bo'lim</th>
+                  <th data-i18n="th_product">Mahsulot</th>
+                  <th data-i18n="th_qty">Soni</th>
+                  <th data-i18n="th_sum">Summa</th>
+                  <th data-i18n="th_by" class="hide-mobile">Kim</th>
+                  <th data-i18n="th_time">Vaqt</th>
+                  <th data-i18n="th_action">Amal</th>
+                </tr>
+              </thead>
+              <tbody id="logsTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           QO'LDA KIRITISH
+      ════════════════════════════════ -->
+      <div id="page-manual" class="hidden">
+        <div class="card" style="max-width:560px;">
+          <div class="card-title mb-3">➕ <span data-i18n="nav_manual">Qo'lda Kiritish</span></div>
+          <p class="text-muted text-sm mb-3" data-i18n="manual_desc">Ishchi kirmagan yoki xato kiritgan bo'lsa admin o'zi kiritishi mumkin.</p>
+          <div id="manualAlert"></div>
+          <div class="fg mb-3">
+            <label data-i18n="th_worker">Ishchi</label>
+            <select id="manWorker" onchange="fillManualProducts()"></select>
+          </div>
+          <div class="fg mb-3">
+            <label data-i18n="th_dept">Bo'lim</label>
+            <select id="manDept" onchange="fillManualProductsByDept()"></select>
+          </div>
+          <div class="fg mb-3">
+            <label data-i18n="th_product">Mahsulot</label>
+            <select id="manProduct" onchange="calcManual()"></select>
+          </div>
+          <div class="fg mb-3">
+            <label data-i18n="th_qty">Soni</label>
+            <input id="manQty" type="number" placeholder="1" min="1" oninput="calcManual()">
+          </div>
+          <div class="fg mb-3">
+            <label data-i18n="man_total_lbl">Hisoblangan summa</label>
+            <input id="manTotal" readonly style="opacity:0.7;">
+          </div>
+          <div class="fg mb-4">
+            <label data-i18n="man_note_lbl">Izoh (ixtiyoriy)</label>
+            <input id="manNote" data-i18n-ph="man_note_ph" placeholder="Kechagi ish uchun...">
+          </div>
+          <button class="btn btn-success btn-full" onclick="addManualLog()">
+            💾 <span data-i18n="btn_save">Saqlash</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════
+           HISOBOTLAR
+      ════════════════════════════════ -->
+      <div id="page-reports" class="hidden">
+        <div class="grid3" id="reportCards">
+          <div class="report-card" onclick="genReport('today')">
+            <div class="report-icon">📄</div>
+            <div class="report-name" data-i18n="rep_today">Bugungi hisobot</div>
+            <div class="report-desc" data-i18n="rep_today_desc">Barcha ishchilar bugungi ishi</div>
+          </div>
+          <div class="report-card" onclick="genReport('month')">
+            <div class="report-icon">📊</div>
+            <div class="report-name" data-i18n="rep_month">Oylik maosh</div>
+            <div class="report-desc" data-i18n="rep_month_desc">Ishchilar bo'yicha oylik daromad</div>
+          </div>
+          <div class="report-card" onclick="genReport('dept')">
+            <div class="report-icon">🏢</div>
+            <div class="report-name" data-i18n="rep_dept">Bo'lim hisoboti</div>
+            <div class="report-desc" data-i18n="rep_dept_desc">Bo'limlar bo'yicha taqqoslash</div>
+          </div>
+        </div>
+        <div id="reportPreview"></div>
+      </div>
+
+      <!-- ════════════════════════════════
+           SOZLAMALAR
+      ════════════════════════════════ -->
+      <div id="page-settings" class="hidden">
+
+        <div class="setting-section">
+          <div class="setting-title">🌐 <span data-i18n="set_lang">Til</span></div>
+          <div class="flex gap-2 flex-wrap">
+            <button class="btn btn-ghost btn-sm" id="langUzL" onclick="setLang('uz_l')">🇺🇿 O'zbek (Lotin)</button>
+            <button class="btn btn-ghost btn-sm" id="langUzC" onclick="setLang('uz_c')">🇺🇿 Ўзбек (Кирилл)</button>
+            <button class="btn btn-ghost btn-sm" id="langRu" onclick="setLang('ru')">🇷🇺 Русский</button>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-title">🎨 <span data-i18n="set_theme">Ko'rinish</span></div>
+          <div class="toggle-wrap">
+            <div>
+              <div class="toggle-label" data-i18n="set_dark_mode">Qorong'u rejim</div>
+              <div class="toggle-sub" data-i18n="set_dark_mode_sub">Ko'z uchun qulay</div>
+            </div>
+            <div class="toggle" id="themeToggle" onclick="toggleTheme()"></div>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-title">🔐 <span data-i18n="set_auth">Kirish</span></div>
+          <div class="fg mb-3">
+            <label data-i18n="set_username">Login</label>
+            <input id="setLogin" value="admin">
+          </div>
+          <div class="fg mb-3">
+            <label data-i18n="set_password">Yangi parol</label>
+            <input id="setPass" type="password" placeholder="••••••">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveAuthSettings()">
+            💾 <span data-i18n="btn_save">Saqlash</span>
+          </button>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-title">📊 <span data-i18n="set_supabase">Supabase</span></div>
+          <div class="fg mb-3">
+            <label>URL</label>
+            <input id="setSupaUrl" placeholder="https://xxx.supabase.co">
+          </div>
+          <div class="fg mb-3">
+            <label>Anon Key</label>
+            <input id="setSupaKey" placeholder="eyJ...">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveSupaSettings()">
+            💾 <span data-i18n="btn_save">Saqlash</span>
+          </button>
+          <p class="text-muted text-xs mt-2" data-i18n="set_supabase_note">Saqlandan so'ng sahifa yangilanadi</p>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-title">ℹ️ <span data-i18n="set_about">Haqida</span></div>
+          <p class="text-sm text-muted">Nina Admin Panel v2.0</p>
+          <p class="text-xs text-muted mt-2" data-i18n="set_about_desc">Ishchilar boshqaruv tizimi. Telegram Web App uchun optimallashtirilgan.</p>
+        </div>
+
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ════════════════════════════════════════
+     MODALS
+════════════════════════════════════════ -->
+
+<!-- Ishchi batafsil / tahrirlash -->
+<div class="modal-bg" id="workerModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3 id="wModalTitle">Ishchi</h3>
+      <button class="modal-close" onclick="closeModal('workerModal')">✕</button>
+    </div>
+    <div id="wModalBody"></div>
+  </div>
+</div>
+
+<!-- Yozuvni tahrirlash -->
+<div class="modal-bg" id="logEditModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3 data-i18n="edit_log_title">Yozuvni Tahrirlash</h3>
+      <button class="modal-close" onclick="closeModal('logEditModal')">✕</button>
+    </div>
+    <div id="logEditAlert"></div>
+    <div class="fg mb-3">
+      <label data-i18n="th_product">Mahsulot</label>
+      <input id="eLogProduct" readonly style="opacity:0.6;">
+    </div>
+    <div class="fg mb-3">
+      <label data-i18n="th_qty">Soni</label>
+      <input id="eLogQty" type="number" min="0" oninput="recalcEditLog()">
+    </div>
+    <div class="fg mb-3">
+      <label data-i18n="th_sum">Summa</label>
+      <input id="eLogTotal" readonly style="opacity:0.6;">
+    </div>
+    <input type="hidden" id="eLogId">
+    <input type="hidden" id="eLogPrice">
+    <div class="flex gap-2">
+      <button class="btn btn-primary" style="flex:1;" onclick="saveLogEdit()">
+        💾 <span data-i18n="btn_save">Saqlash</span>
+      </button>
+      <button class="btn btn-danger" onclick="deleteLog()">
+        🗑 <span data-i18n="btn_delete">O'chirish</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Mahsulot tahrirlash -->
+<div class="modal-bg" id="prodModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3 data-i18n="edit_prod_title">Mahsulot Tahrirlash</h3>
+      <button class="modal-close" onclick="closeModal('prodModal')">✕</button>
+    </div>
+    <div id="prodModalAlert"></div>
+    <div class="fg mb-3"><label data-i18n="th_name">Nomi</label><input id="eProdName"></div>
+    <div class="fg mb-3"><label data-i18n="th_code">Kodi</label><input id="eProdCode"></div>
+    <div class="fg mb-4"><label data-i18n="th_price">Narxi</label><input id="eProdPrice" type="number"></div>
+    <input type="hidden" id="eProdId">
+    <button class="btn btn-primary btn-full" onclick="saveProd()">
+      💾 <span data-i18n="btn_save">Saqlash</span>
+    </button>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ══════════════════════════════════════════
+// i18n — 3 TIL
+// ══════════════════════════════════════════
+const LANGS = {
+  uz_l: {
+    nav_dashboard:'Dashboard', nav_logs:'Yozuvlar', nav_reports:'Hisobotlar',
+    nav_workers:'Ishchilar', nav_departments:"Bo'limlar", nav_products:'Mahsulotlar',
+    nav_manual:"Qo'lda Kiritish", nav_settings:'Sozlamalar', nav_logout:'Chiqish',
+    ns_main:'ASOSIY', ns_manage:'BOSHQARUV', ns_system:'TIZIM',
+    login_sub:'Ishchilar boshqaruv tizimi', lbl_login:'Login', lbl_pass:'Parol', lbl_signin:'Kirish',
+    stat_today_income:'Bugungi daromad', stat_workers:'Faol ishchilar',
+    stat_items:'Bajarilgan dona', stat_month:"30 kunlik",
+    chart_title:"30 Kunlik Grafik", top_workers:"Bugungi TOP",
+    recent_logs:"So'nggi Yozuvlar", see_all:"Barchasi",
+    th_worker:'Ishchi', th_dept:"Bo'lim", th_product:'Mahsulot', th_qty:'Soni',
+    th_sum:'Summa', th_by:'Kim', th_time:'Vaqt', th_action:'Amal',
+    th_phone:'Telefon', th_today:'Bugun', th_status:'Holat', th_name:'Nomi',
+    th_products:'Mahsulotlar', th_workers_count:'Ishchilar', th_code:'Kodi', th_price:"Narxi",
+    add_dept:"Yangi Bo'lim", dept_name_lbl:"Bo'lim nomi", dept_name_ph:"Masalan: Tikuvchilar",
+    all_depts:"Barcha Bo'limlar", all_depts_opt:"Barcha bo'limlar",
+    add_product:'Yangi Mahsulot', all_products:'Mahsulotlar',
+    tab_today:'Bugun', tab_week:'Hafta', tab_all:'Barchasi',
+    search_ph:'Qidirish...', manual_desc:"Ishchi kirmagan yoki xato kiritgan bo'lsa admin o'zi kiritishi mumkin.",
+    man_total_lbl:'Hisoblangan summa', man_note_lbl:'Izoh (ixtiyoriy)', man_note_ph:'Kechagi ish uchun...',
+    rep_today:'Bugungi hisobot', rep_today_desc:'Barcha ishchilar bugungi ishi',
+    rep_month:'Oylik maosh', rep_month_desc:"Ishchilar bo'yicha oylik daromad",
+    rep_dept:"Bo'lim hisoboti", rep_dept_desc:"Bo'limlar bo'yicha taqqoslash",
+    set_lang:'Til', set_theme:"Ko'rinish", set_dark_mode:"Qorong'u rejim",
+    set_dark_mode_sub:"Ko'z uchun qulay", set_auth:'Kirish', set_username:'Login',
+    set_password:'Yangi parol', set_supabase:'Supabase',
+    set_supabase_note:"Saqlandan so'ng sahifa yangilanadi",
+    set_about:'Haqida', set_about_desc:"Ishchilar boshqaruv tizimi. Telegram Web App uchun optimallashtirilgan.",
+    edit_log_title:'Yozuvni Tahrirlash', edit_prod_title:'Mahsulot Tahrirlash',
+    btn_add:"Qo'shish", btn_save:'Saqlash', btn_delete:"O'chirish",
+    btn_block:'Bloklash', btn_unblock:'Faollashtirish', btn_edit:'Tahrirlash',
+    worker_today:"Bugungi daromad", worker_total:"Jami (30 kun)", worker_dept:"Bo'lim",
+    worker_phone:"Telefon", worker_status:'Holat', worker_active:'Faol',
+    worker_blocked:"Bloklangan", worker_logs:"So'nggi yozuvlar",
+    del_confirm:"O'chirishni tasdiqlaysizmi?", block_confirm:'Bloklashni tasdiqlaysizmi?',
+    saved_ok:"✅ Saqlandi!", deleted_ok:"✅ O'chirildi!", error_fill:"Barcha maydonlarni to'ldiring",
+    no_data:"Ma'lumot yo'q", loading:'Yuklanmoqda...',
+    by_worker:'Ishchi', by_admin:'Admin',
+    pdf_title:'Hisobot', pdf_date:'Sana', pdf_generated:'Tuzildi',
+    status_active:'Faol', status_inactive:'Nofaol',
+  },
+  uz_c: {
+    nav_dashboard:'Дашбоард', nav_logs:'Ёзувлар', nav_reports:'Ҳисоботлар',
+    nav_workers:'Ишчилар', nav_departments:'Бўлимлар', nav_products:'Маҳсулотлар',
+    nav_manual:'Қўлда Киритиш', nav_settings:'Созламалар', nav_logout:'Чиқиш',
+    ns_main:'АСОСИЙ', ns_manage:'БОШҚАРУВ', ns_system:'ТИЗИМ',
+    login_sub:'Ишчилар бошқарув тизими', lbl_login:'Логин', lbl_pass:'Парол', lbl_signin:'Кириш',
+    stat_today_income:'Бугунги даромад', stat_workers:'Фаол ишчилар',
+    stat_items:'Бажарилган дона', stat_month:'30 кунлик',
+    chart_title:'30 Кунлик График', top_workers:'Бугунги ТОП',
+    recent_logs:'Сўнгги Ёзувлар', see_all:'Барчаси',
+    th_worker:'Ишчи', th_dept:'Бўлим', th_product:'Маҳсулот', th_qty:'Сони',
+    th_sum:'Сумма', th_by:'Ким', th_time:'Вақт', th_action:'Амал',
+    th_phone:'Телефон', th_today:'Бугун', th_status:'Ҳолат', th_name:'Номи',
+    th_products:'Маҳсулотлар', th_workers_count:'Ишчилар', th_code:'Коди', th_price:'Нархи',
+    add_dept:'Янги Бўлим', dept_name_lbl:'Бўлим номи', dept_name_ph:'Масалан: Тикувчилар',
+    all_depts:'Барча Бўлимлар', all_depts_opt:'Барча бўлимлар',
+    add_product:'Янги Маҳсулот', all_products:'Маҳсулотлар',
+    tab_today:'Бугун', tab_week:'Ҳафта', tab_all:'Барчаси',
+    search_ph:'Қидириш...', manual_desc:'Ишчи кирмаган ёки хато киритган бўлса админ ўзи киритиши мумкин.',
+    man_total_lbl:'Ҳисобланган сумма', man_note_lbl:'Изоҳ (ихтиёрий)', man_note_ph:'Кечаги иш учун...',
+    rep_today:'Бугунги ҳисобот', rep_today_desc:'Барча ишчилар бугунги иши',
+    rep_month:'Ойлик маош', rep_month_desc:'Ишчилар бўйича ойлик даромад',
+    rep_dept:'Бўлим ҳисоботи', rep_dept_desc:'Бўлимлар бўйича таққослаш',
+    set_lang:'Тил', set_theme:'Кўриниш', set_dark_mode:'Қоронғу режим',
+    set_dark_mode_sub:'Кўз учун қулай', set_auth:'Кириш', set_username:'Логин',
+    set_password:'Янги парол', set_supabase:'Supabase',
+    set_supabase_note:'Сақланган сўнг саҳифа янгиланади',
+    set_about:'Ҳақида', set_about_desc:'Ишчилар бошқарув тизими. Telegram Web App учун оптималлаштирилган.',
+    edit_log_title:'Ёзувни Таҳрирлаш', edit_prod_title:'Маҳсулот Таҳрирлаш',
+    btn_add:'Қўшиш', btn_save:'Сақлаш', btn_delete:'Ўчириш',
+    btn_block:'Блоклаш', btn_unblock:'Фаоллаштириш', btn_edit:'Таҳрирлаш',
+    worker_today:'Бугунги даромад', worker_total:'Жами (30 кун)', worker_dept:'Бўлим',
+    worker_phone:'Телефон', worker_status:'Ҳолат', worker_active:'Фаол',
+    worker_blocked:'Блокланган', worker_logs:'Сўнгги ёзувлар',
+    del_confirm:'Ўчиришни тасдиқлайсизми?', block_confirm:'Блоклашни тасдиқлайсизми?',
+    saved_ok:'✅ Сақланди!', deleted_ok:"✅ Ўчирилди!", error_fill:'Барча майдонларни тўлдиринг',
+    no_data:'Маълумот йўқ', loading:'Юкланмоқда...',
+    by_worker:'Ишчи', by_admin:'Админ',
+    pdf_title:'Ҳисобот', pdf_date:'Сана', pdf_generated:'Тузилди',
+    status_active:'Фаол', status_inactive:'Нофаол',
+  },
+  ru: {
+    nav_dashboard:'Панель', nav_logs:'Записи', nav_reports:'Отчёты',
+    nav_workers:'Работники', nav_departments:'Отделы', nav_products:'Продукты',
+    nav_manual:'Ручной ввод', nav_settings:'Настройки', nav_logout:'Выход',
+    ns_main:'ГЛАВНОЕ', ns_manage:'УПРАВЛЕНИЕ', ns_system:'СИСТЕМА',
+    login_sub:'Система управления работниками', lbl_login:'Логин', lbl_pass:'Пароль', lbl_signin:'Войти',
+    stat_today_income:'Доход сегодня', stat_workers:'Активные работники',
+    stat_items:'Выполнено сегодня', stat_month:'За 30 дней',
+    chart_title:'График за 30 дней', top_workers:'ТОП сегодня',
+    recent_logs:'Последние записи', see_all:'Все',
+    th_worker:'Работник', th_dept:'Отдел', th_product:'Продукт', th_qty:'Кол-во',
+    th_sum:'Сумма', th_by:'Кто', th_time:'Время', th_action:'Действие',
+    th_phone:'Телефон', th_today:'Сегодня', th_status:'Статус', th_name:'Название',
+    th_products:'Продукты', th_workers_count:'Работники', th_code:'Код', th_price:'Цена',
+    add_dept:'Новый отдел', dept_name_lbl:'Название отдела', dept_name_ph:'Например: Швеи',
+    all_depts:'Все отделы', all_depts_opt:'Все отделы',
+    add_product:'Новый продукт', all_products:'Продукты',
+    tab_today:'Сегодня', tab_week:'Неделя', tab_all:'Все',
+    search_ph:'Поиск...', manual_desc:'Если работник не вошёл или ошибся, admin может ввести сам.',
+    man_total_lbl:'Рассчитанная сумма', man_note_lbl:'Примечание (необязательно)', man_note_ph:'За вчерашнюю работу...',
+    rep_today:'Отчёт за сегодня', rep_today_desc:'Работа всех сотрудников за сегодня',
+    rep_month:'Зарплата за месяц', rep_month_desc:'Доход работников за месяц',
+    rep_dept:'Отчёт по отделам', rep_dept_desc:'Сравнение по отделам',
+    set_lang:'Язык', set_theme:'Внешний вид', set_dark_mode:'Тёмный режим',
+    set_dark_mode_sub:'Удобнее для глаз', set_auth:'Авторизация', set_username:'Логин',
+    set_password:'Новый пароль', set_supabase:'Supabase',
+    set_supabase_note:'После сохранения страница обновится',
+    set_about:'О программе', set_about_desc:'Система управления работниками. Оптимизирована для Telegram Web App.',
+    edit_log_title:'Редактировать запись', edit_prod_title:'Редактировать продукт',
+    btn_add:'Добавить', btn_save:'Сохранить', btn_delete:'Удалить',
+    btn_block:'Заблокировать', btn_unblock:'Разблокировать', btn_edit:'Изменить',
+    worker_today:'Доход сегодня', worker_total:'Итого (30 дней)', worker_dept:'Отдел',
+    worker_phone:'Телефон', worker_status:'Статус', worker_active:'Активен',
+    worker_blocked:'Заблокирован', worker_logs:'Последние записи',
+    del_confirm:'Подтвердить удаление?', block_confirm:'Подтвердить блокировку?',
+    saved_ok:'✅ Сохранено!', deleted_ok:'✅ Удалено!', error_fill:'Заполните все поля',
+    no_data:'Нет данных', loading:'Загрузка...',
+    by_worker:'Работник', by_admin:'Админ',
+    pdf_title:'Отчёт', pdf_date:'Дата', pdf_generated:'Создан',
+    status_active:'Активен', status_inactive:'Неактивен',
+  }
+};
+
+let currentLang = localStorage.getItem('nina_lang') || 'uz_l';
+function T(k) { return LANGS[currentLang]?.[k] || LANGS.uz_l[k] || k; }
+
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    el.textContent = T(k);
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = T(el.getAttribute('data-i18n-ph'));
+  });
+  // Active lang buttons
+  ['langUzL','langUzC','langRu'].forEach(id => document.getElementById(id)?.classList.remove('btn-primary'));
+  const map = { uz_l:'langUzL', uz_c:'langUzC', ru:'langRu' };
+  document.getElementById(map[currentLang])?.classList.add('btn-primary');
+  document.getElementById('loadingText').textContent = T('loading');
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('nina_lang', lang);
+  applyLang();
+  renderPage(currentPage);
+  toast(T('saved_ok'), 'success');
+}
+
+// ══════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════
+let isDark = localStorage.getItem('nina_theme') !== 'light';
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  const tog = document.getElementById('themeToggle');
+  if (tog) tog.classList.toggle('on', isDark);
+}
+
+function toggleTheme() {
+  isDark = !isDark;
+  localStorage.setItem('nina_theme', isDark ? 'dark' : 'light');
+  applyTheme();
+}
+
+// ══════════════════════════════════════════
+// SUPABASE CONFIG
+// ══════════════════════════════════════════
+let SUPABASE_URL = localStorage.getItem('nina_supa_url') || 'https://fcxjdxbqddqpggejepmu.supabase.co';
+let SUPABASE_KEY = localStorage.getItem('nina_supa_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjeGpkeGJxZGRxcGdnZWplcG11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MjA2MTMsImV4cCI6MjA4NzA5NjYxM30.tobDWwAR_-KaLBMKbk0aPscvRHVMrajFiYbC-MMB_xY';
+let supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function saveSupaSettings() {
+  const url = document.getElementById('setSupaUrl').value.trim();
+  const key = document.getElementById('setSupaKey').value.trim();
+  if (url && key) {
+    localStorage.setItem('nina_supa_url', url);
+    localStorage.setItem('nina_supa_key', key);
+    toast(T('saved_ok'), 'success');
+    setTimeout(() => location.reload(), 1200);
+  }
+}
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+let ADMIN_LOGIN = localStorage.getItem('nina_login') || 'admin';
+let ADMIN_PASS  = localStorage.getItem('nina_pass')  || 'admin123';
+let authed = sessionStorage.getItem('nina_adm') === '1';
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if (u === ADMIN_LOGIN && p === ADMIN_PASS) {
+    sessionStorage.setItem('nina_adm', '1');
+    authed = true;
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('appPage').classList.remove('hidden');
+    init();
+  } else {
+    document.getElementById('loginAlert').innerHTML =
+      `<div class="alert alert-error">❌ ${T('lbl_pass')} noto'g'ri</div>`;
+  }
+}
+function logout() { sessionStorage.removeItem('nina_adm'); location.reload(); }
+function saveAuthSettings() {
+  const l = document.getElementById('setLogin').value.trim();
+  const p = document.getElementById('setPass').value;
+  if (l) { localStorage.setItem('nina_login', l); ADMIN_LOGIN = l; }
+  if (p) { localStorage.setItem('nina_pass', p); ADMIN_PASS = p; }
+  toast(T('saved_ok'), 'success');
+}
+
+// ══════════════════════════════════════════
+// Telegram Web App integration
+// ══════════════════════════════════════════
+function initTWA() {
+  if (window.Telegram?.WebApp) {
+    const twa = window.Telegram.WebApp;
+    twa.ready();
+    twa.expand();
+    // Use Telegram color scheme
+    if (twa.colorScheme === 'dark') { isDark = true; } else { isDark = false; }
+    applyTheme();
+  }
+}
+
+// ══════════════════════════════════════════
+// CACHE & DATA
+// ══════════════════════════════════════════
+let cache = { departments:[], products:[], workers:[], logs:[] };
+let logsFilter = 'today';
+let currentPage = 'dashboard';
+
+async function loadAll() {
+  try {
+    const [d, p, w, l] = await Promise.all([
+      supa.from('departments').select('*').order('name'),
+      supa.from('products').select('*, departments(name)').order('name'),
+      supa.from('workers').select('*, departments(name)').order('full_name'),
+      supa.from('work_logs')
+        .select('*, workers(full_name,telegram_id,departments(name)), products(name,code,price)')
+        .order('created_at', { ascending: false })
+        .limit(500)
+    ]);
+    cache.departments = d.data || [];
+    cache.products = (p.data||[]).map(x => ({ ...x, department_name: x.departments?.name||'' }));
+    cache.workers   = (w.data||[]).map(x => ({ ...x, department_name: x.departments?.name||'' }));
+    cache.logs = (l.data||[]).map(x => ({
+      ...x,
+      worker_name: x.workers?.full_name || T('no_data'),
+      department_name: x.workers?.departments?.name || '—',
+      product_name:  x.products?.name  || T('no_data'),
+      product_code:  x.products?.code  || '—',
+      product_price: x.products?.price || 0,
+    }));
+  } catch(e) {
+    console.error('loadAll error:', e);
+    toast('❌ Supabase xatolik: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+async function init() {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString(currentLang==='ru'?'ru-RU':'uz-UZ', { day:'numeric', month:'short', year:'numeric' });
+
+  // Settings page init
+  document.getElementById('setSupaUrl').value = SUPABASE_URL;
+  document.getElementById('setSupaKey').value = SUPABASE_KEY;
+  document.getElementById('setLogin').value = ADMIN_LOGIN;
+
+  await loadAll();
+
+  document.getElementById('loadingOverlay').style.display = 'none';
+  showPage('dashboard');
+
+  // Realtime
+  supa.channel('nina-rt')
+    .on('postgres_changes', { event:'*', schema:'public' }, async () => {
+      await loadAll();
+      renderPage(currentPage);
+    })
+    .subscribe();
+}
+
+// ══════════════════════════════════════════
+// MOBILE SIDEBAR
+// ══════════════════════════════════════════
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const o = document.getElementById('sidebarOverlay');
+  s.classList.toggle('mobile-open');
+  o.classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// ══════════════════════════════════════════
+// PAGES
+// ══════════════════════════════════════════
+const pageTitles = {
+  dashboard:'Dashboard', logs:'nav_logs', reports:'nav_reports',
+  workers:'nav_workers', departments:'nav_departments', products:'nav_products',
+  manual:'nav_manual', settings:'nav_settings'
+};
+
+function showPage(p) {
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-'+p)?.classList.remove('hidden');
+  document.getElementById('nav-'+p)?.classList.add('active');
+  currentPage = p;
+  const titleKey = pageTitles[p];
+  document.getElementById('pageTitle').textContent = titleKey ? T(titleKey) : p;
+  renderPage(p);
+  closeSidebar();
+}
+
+function renderPage(p) {
+  if (p==='dashboard')   renderDashboard();
+  else if (p==='workers')     renderWorkers();
+  else if (p==='departments') renderDepartments();
+  else if (p==='products')    renderProducts();
+  else if (p==='logs')        renderLogs();
+  else if (p==='manual')      renderManual();
+  else if (p==='reports')     renderReports();
+  else if (p==='settings')    renderSettings();
+}
+
+async function refreshData() {
+  await loadAll();
+  renderPage(currentPage);
+  toast('🔄 ' + T('loading').replace('...','') + ' yangilandi', 'info');
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard() {
+  const today = new Date().toDateString();
+  const ago30 = Date.now() - 30*86400000;
+  const todayLogs = cache.logs.filter(l => new Date(l.created_at).toDateString()===today);
+  const monthLogs = cache.logs.filter(l => new Date(l.created_at).getTime()>ago30);
+
+  const todayInc = todayLogs.reduce((s,l)=>s+l.total_amount,0);
+  const todayQty = todayLogs.reduce((s,l)=>s+l.quantity,0);
+  const monthInc = monthLogs.reduce((s,l)=>s+l.total_amount,0);
+
+  document.getElementById('s-today').textContent = fmtNum(todayInc);
+  document.getElementById('s-workers').textContent = cache.workers.filter(w=>w.is_active!==false).length;
+  document.getElementById('s-items').textContent = fmtNum(todayQty);
+  document.getElementById('s-month').textContent = fmtNum(monthInc);
+
+  // Chart
+  const days=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(Date.now()-i*86400000);
+    const inc=cache.logs.filter(l=>new Date(l.created_at).toDateString()===d.toDateString()).reduce((s,l)=>s+l.total_amount,0);
+    days.push({d,inc});
+  }
+  const maxV=Math.max(...days.map(x=>x.inc),1);
+  const todayStr=new Date().toDateString();
+  document.getElementById('chartBars').innerHTML=days.map(({d,inc})=>
+    `<div class="cb${d.toDateString()===todayStr?' today':''}" style="height:${Math.max(3,(inc/maxV)*100)}%">
+      <div class="tip">${d.toLocaleDateString(currentLang==='ru'?'ru-RU':'uz-UZ',{month:'short',day:'numeric'})}<br>${fmtNum(inc)} so'm</div>
+    </div>`
+  ).join('');
+  document.getElementById('chartLabels').innerHTML=days.map(({d},i)=>
+    `<div class="cl">${i%5===0?d.getDate():''}</div>`
+  ).join('');
+
+  // TOP
+  const wMap={};
+  todayLogs.forEach(l=>{
+    if(!wMap[l.worker_id]) wMap[l.worker_id]={inc:0,qty:0};
+    wMap[l.worker_id].inc+=l.total_amount;
+    wMap[l.worker_id].qty+=l.quantity;
+  });
+  const tops=Object.entries(wMap).sort((a,b)=>b[1].inc-a[1].inc).slice(0,5);
+  const topEl=document.getElementById('topList');
+  if(!tops.length){
+    topEl.innerHTML=`<div class="empty-state"><div class="ei">📭</div><p>${T('no_data')}</p></div>`;
+  } else {
+    topEl.innerHTML=tops.map(([wid,d],i)=>{
+      const w=cache.workers.find(x=>x.id==wid);
+      const medals=['🥇','🥈','🥉'];
+      const name=w?w.full_name:T('no_data');
+      const color=avatarColor(name);
+      return `<div class="flex items-center gap-2" style="padding:9px 0;border-top:${i>0?'1px solid var(--border)':'none'};">
+        <span style="font-size:18px;width:24px;">${medals[i]||''}</span>
+        <div class="avatar" style="background:${color};width:30px;height:30px;font-size:12px;">${name[0]}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="fw7 truncate" style="font-size:13px;">${name}</div>
+          <div class="text-muted text-xs">${d.qty} ${T('th_qty').toLowerCase()}</div>
+        </div>
+        <div class="green fw7 mono" style="font-size:13px;">${fmtNum(d.inc)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Recent
+  document.getElementById('recentTbody').innerHTML=cache.logs.slice(0,8).map(l=>{
+    const color=avatarColor(l.worker_name);
+    return `<tr>
+      <td><div class="flex items-center gap-2">
+        <div class="avatar" style="background:${color};width:28px;height:28px;font-size:11px;border-radius:8px;">${l.worker_name[0]}</div>
+        <span class="fw7 truncate" style="max-width:100px;">${l.worker_name}</span>
+      </div></td>
+      <td class="hide-mobile"><span class="badge badge-yellow">${l.department_name}</span></td>
+      <td>${l.product_name} <code class="text-muted" style="font-size:10px;">${l.product_code}</code></td>
+      <td class="mono">${l.quantity}</td>
+      <td class="green fw7 mono">${fmtNum(l.total_amount)}</td>
+      <td class="hide-mobile"><span class="badge ${l.added_by==='admin'?'badge-purple':'badge-blue'}">${l.added_by==='admin'?T('by_admin'):T('by_worker')}</span></td>
+      <td class="text-muted text-xs">${timeAgo(l.created_at)}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="7"><div class="empty-state"><div class="ei">📭</div><p>${T('no_data')}</p></div></td></tr>`;
+}
+
+// ══════════════════════════════════════════
+// ISHCHILAR
+// ══════════════════════════════════════════
+function renderWorkers() {
+  const search=(document.getElementById('workerSearch')?.value||'').toLowerCase();
+  let workers=cache.workers;
+  if(search) workers=workers.filter(w=>w.full_name.toLowerCase().includes(search)||w.phone?.includes(search));
+
+  document.getElementById('workersTbody').innerHTML=workers.map((w,i)=>{
+    const todayInc=cache.logs
+      .filter(l=>l.worker_id==w.id&&new Date(l.created_at).toDateString()===new Date().toDateString())
+      .reduce((s,l)=>s+l.total_amount,0);
+    const isActive=w.is_active!==false;
+    const color=avatarColor(w.full_name);
+    return `<tr>
+      <td class="text-muted mono text-xs">${i+1}</td>
+      <td><div class="flex items-center gap-2">
+        <div class="avatar" style="background:${color};width:32px;height:32px;font-size:13px;">${w.full_name[0]}</div>
+        <div style="min-width:0;">
+          <div class="fw7 truncate">${w.full_name}</div>
+          <div class="text-xs ${todayInc>0?'green':'text-muted'}">${todayInc>0?'💰 '+fmtNum(todayInc):'—'}</div>
+        </div>
+      </div></td>
+      <td class="hide-mobile text-sm">${w.phone||'—'}</td>
+      <td><span class="badge badge-yellow">${w.department_name}</span></td>
+      <td class="hide-mobile mono text-sm ${todayInc>0?'green':''}">${todayInc>0?fmtNum(todayInc):T('no_data')}</td>
+      <td><span class="badge ${isActive?'badge-green':'badge-red'}">${isActive?T('status_active'):T('status_inactive')}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-xs" onclick="openWorkerModal(${w.id})">📊</button>
+      </td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="7"><div class="empty-state"><div class="ei">👥</div><p>${T('no_data')}</p></div></td></tr>`;
+}
+
+function openWorkerModal(id) {
+  const w = cache.workers.find(x=>x.id==id);
+  if(!w) return;
+  const wLogs = cache.logs.filter(l=>l.worker_id==id);
+  const today = new Date().toDateString();
+  const ago30 = Date.now()-30*86400000;
+  const todayInc = wLogs.filter(l=>new Date(l.created_at).toDateString()===today).reduce((s,l)=>s+l.total_amount,0);
+  const monthInc = wLogs.filter(l=>new Date(l.created_at).getTime()>ago30).reduce((s,l)=>s+l.total_amount,0);
+  const isActive = w.is_active!==false;
+  const color = avatarColor(w.full_name);
+
+  document.getElementById('wModalTitle').textContent = w.full_name;
+  document.getElementById('wModalBody').innerHTML = `
+    <div class="flex items-center gap-3 mb-4">
+      <div class="avatar" style="background:${color};width:52px;height:52px;font-size:20px;border-radius:14px;">${w.full_name[0]}</div>
+      <div>
+        <div class="fw8" style="font-size:15px;">${w.full_name}</div>
+        <div class="text-muted text-sm">${w.department_name} · ${w.phone||'—'}</div>
+        <span class="badge ${isActive?'badge-green':'badge-red'} mt-1">${isActive?T('worker_active'):T('worker_blocked')}</span>
+      </div>
+    </div>
+
+    <div class="grid2" style="gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surface2);padding:12px;border-radius:10px;border:1px solid var(--border);">
+        <div class="text-xs text-muted fw7">${T('worker_today')}</div>
+        <div class="fw8 green mono" style="font-size:16px;margin-top:4px;">${fmtNum(todayInc)}</div>
+      </div>
+      <div style="background:var(--surface2);padding:12px;border-radius:10px;border:1px solid var(--border);">
+        <div class="text-xs text-muted fw7">${T('worker_total')}</div>
+        <div class="fw8 mono accent" style="font-size:16px;margin-top:4px;">${fmtNum(monthInc)}</div>
+      </div>
+    </div>
+
+    <!-- Tahrirlash formasi -->
+    <div style="background:var(--surface2);padding:14px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px;">
+      <div class="text-xs text-muted fw7 mb-3">✏️ ${T('btn_edit').toUpperCase()}</div>
+      <div id="workerEditAlert"></div>
+      <div class="fg mb-2">
+        <label class="text-xs">${T('th_worker')}</label>
+        <input id="eWorkerName" value="${escHtml(w.full_name)}">
+      </div>
+      <div class="fg mb-2">
+        <label class="text-xs">${T('th_phone')}</label>
+        <input id="eWorkerPhone" value="${escHtml(w.phone||'')}">
+      </div>
+      <div class="fg mb-3">
+        <label class="text-xs">${T('th_dept')}</label>
+        <select id="eWorkerDept">
+          ${cache.departments.map(d=>`<option value="${d.id}"${d.id==w.department_id?' selected':''}>${d.name}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm btn-full" onclick="saveWorkerEdit(${w.id})">
+        💾 ${T('btn_save')}
+      </button>
+    </div>
+
+    <div class="flex gap-2">
+      <button class="btn ${isActive?'btn-danger':'btn-success'} btn-sm" style="flex:1;" onclick="toggleWorker(${w.id},${isActive})">
+        ${isActive?('🚫 '+T('btn_block')):('✅ '+T('btn_unblock'))}
+      </button>
+      <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="clearWorkerToday(${w.id})">
+        🗑 Bugunni 0 qilish
+      </button>
+    </div>
+
+    <hr class="div">
+    <div class="text-xs text-muted fw7 mb-2">${T('worker_logs')}</div>
+    ${wLogs.slice(0,8).map(l=>`
+      <div class="flex items-center gap-2" style="padding:8px 0;border-top:1px solid var(--border);">
+        <span class="badge ${l.added_by==='admin'?'badge-purple':'badge-blue'} text-xs">${l.added_by==='admin'?T('by_admin'):T('by_worker')}</span>
+        <span style="flex:1;font-size:13px;">${l.product_name}</span>
+        <span class="text-muted text-xs">${l.quantity}</span>
+        <span class="mono green fw7 text-sm">${fmtNum(l.total_amount)}</span>
+        <button class="btn btn-ghost btn-xs" onclick="openLogEdit(${l.id})">✏️</button>
+      </div>`).join('')||`<p class="text-muted text-sm">${T('no_data')}</p>`}
+  `;
+  openModal('workerModal');
+}
+
+async function saveWorkerEdit(id) {
+  const name = document.getElementById('eWorkerName').value.trim();
+  const phone = document.getElementById('eWorkerPhone').value.trim();
+  const dept = document.getElementById('eWorkerDept').value;
+  if(!name) return;
+  const { error } = await supa.from('workers').update({ full_name:name, phone, department_id:parseInt(dept) }).eq('id',id);
+  if(error){ showAlert('workerEditAlert','error','❌ '+error.message); return; }
+  await loadAll();
+  toast(T('saved_ok'),'success');
+  closeModal('workerModal');
+  renderWorkers();
+}
+
+async function toggleWorker(id, isActive) {
+  if(isActive && !confirm(T('block_confirm'))) return;
+  await supa.from('workers').update({ is_active: !isActive }).eq('id',id);
+  await loadAll();
+  toast(T('saved_ok'),'success');
+  closeModal('workerModal');
+  renderWorkers();
+}
+
+async function clearWorkerToday(workerId) {
+  if(!confirm(T('del_confirm'))) return;
+  const today = new Date().toISOString().split('T')[0];
+  await supa.from('work_logs').delete().eq('worker_id',workerId).gte('created_at',today);
+  await loadAll();
+  toast(T('deleted_ok'),'success');
+  closeModal('workerModal');
+}
+
+// ══════════════════════════════════════════
+// BO'LIMLAR
+// ══════════════════════════════════════════
+async function addDepartment() {
+  const name=document.getElementById('deptName').value.trim();
+  if(!name) return showAlert('deptAlert','error',T('error_fill'));
+  const { error } = await supa.from('departments').insert({ name, is_active:true });
+  if(error) return showAlert('deptAlert','error','❌ '+error.message);
+  document.getElementById('deptName').value='';
+  toast(T('saved_ok'),'success');
+  await loadAll(); renderDepartments();
+}
+
+function renderDepartments() {
+  document.getElementById('deptTbody').innerHTML=cache.departments.map((d,i)=>{
+    const pc=cache.products.filter(p=>p.department_id==d.id).length;
+    const wc=cache.workers.filter(w=>w.department_id==d.id).length;
+    const isActive=d.is_active!==false;
+    return `<tr>
+      <td class="text-muted mono text-xs">${i+1}</td>
+      <td class="fw7">${d.name}</td>
+      <td><span class="badge badge-blue">${pc}</span></td>
+      <td><span class="badge badge-green">${wc}</span></td>
+      <td><span class="badge ${isActive?'badge-green':'badge-gray'}">${isActive?T('status_active'):T('status_inactive')}</span></td>
+      <td class="flex gap-1">
+        <button class="btn btn-ghost btn-xs" onclick="toggleDept(${d.id},${isActive})">${isActive?'⏸':'▶️'}</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteDept(${d.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="6"><div class="empty-state"><div class="ei">🏢</div><p>${T('no_data')}</p></div></td></tr>`;
+}
+
+async function toggleDept(id,isActive){
+  await supa.from('departments').update({is_active:!isActive}).eq('id',id);
+  await loadAll(); renderDepartments(); toast(T('saved_ok'),'success');
+}
+async function deleteDept(id){
+  if(!confirm(T('del_confirm'))) return;
+  await supa.from('departments').delete().eq('id',id);
+  await loadAll(); renderDepartments(); toast(T('deleted_ok'),'success');
+}
+
+// ══════════════════════════════════════════
+// MAHSULOTLAR
+// ══════════════════════════════════════════
+async function addProduct(){
+  const dept=document.getElementById('prodDept').value;
+  const name=document.getElementById('prodName').value.trim();
+  const code=document.getElementById('prodCode').value.trim().toUpperCase();
+  const price=parseFloat(document.getElementById('prodPrice').value);
+  if(!dept||!name||!code||!price) return showAlert('prodAlert','error',T('error_fill'));
+  const { error }=await supa.from('products').insert({ department_id:parseInt(dept), name, code, price, is_active:true });
+  if(error) return showAlert('prodAlert','error','❌ '+error.message);
+  document.getElementById('prodName').value='';
+  document.getElementById('prodCode').value='';
+  document.getElementById('prodPrice').value='';
+  toast(T('saved_ok'),'success');
+  await loadAll(); renderProducts();
+}
+
+function renderProducts(){
+  const depts=cache.departments;
+  const opts=depts.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  document.getElementById('prodDept').innerHTML=opts;
+  const filt=document.getElementById('prodDeptFilter');
+  filt.innerHTML=`<option value="">${T('all_depts_opt')}</option>`+opts;
+
+  const search=(document.getElementById('prodSearch')?.value||'').toLowerCase();
+  const dFilter=document.getElementById('prodDeptFilter')?.value||'';
+  let prods=cache.products;
+  if(search) prods=prods.filter(p=>p.name.toLowerCase().includes(search)||p.code.toLowerCase().includes(search));
+  if(dFilter) prods=prods.filter(p=>p.department_id==dFilter);
+
+  document.getElementById('prodTbody').innerHTML=prods.map(p=>{
+    const isActive=p.is_active!==false;
+    return `<tr>
+      <td><span class="badge badge-yellow">${p.department_name}</span></td>
+      <td class="fw7">${p.name}</td>
+      <td><code style="background:var(--surface2);padding:2px 7px;border-radius:5px;font-size:11px;">${p.code}</code></td>
+      <td class="mono fw7">${fmtNum(p.price)}</td>
+      <td><span class="badge ${isActive?'badge-green':'badge-gray'}">${isActive?T('status_active'):T('status_inactive')}</span></td>
+      <td class="flex gap-1">
+        <button class="btn btn-ghost btn-xs" onclick="openEditProd(${p.id})">✏️</button>
+        <button class="btn btn-ghost btn-xs" onclick="toggleProd(${p.id},${isActive})">${isActive?'⏸':'▶️'}</button>
+        <button class="btn btn-danger btn-xs" onclick="deleteProd(${p.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="6"><div class="empty-state"><div class="ei">📦</div><p>${T('no_data')}</p></div></td></tr>`;
+}
+
+function openEditProd(id){
+  const p=cache.products.find(x=>x.id==id);
+  if(!p) return;
+  document.getElementById('eProdId').value=id;
+  document.getElementById('eProdName').value=p.name;
+  document.getElementById('eProdCode').value=p.code;
+  document.getElementById('eProdPrice').value=p.price;
+  openModal('prodModal');
+}
+async function saveProd(){
+  const id=document.getElementById('eProdId').value;
+  const name=document.getElementById('eProdName').value;
+  const code=document.getElementById('eProdCode').value.toUpperCase();
+  const price=parseFloat(document.getElementById('eProdPrice').value);
+  const { error }=await supa.from('products').update({name,code,price}).eq('id',id);
+  if(error) return showAlert('prodModalAlert','error','❌ '+error.message);
+  closeModal('prodModal');
+  await loadAll(); renderProducts();
+  toast(T('saved_ok'),'success');
+}
+async function toggleProd(id,isActive){
+  await supa.from('products').update({is_active:!isActive}).eq('id',id);
+  await loadAll(); renderProducts(); toast(T('saved_ok'),'success');
+}
+async function deleteProd(id){
+  if(!confirm(T('del_confirm'))) return;
+  await supa.from('products').delete().eq('id',id);
+  await loadAll(); renderProducts(); toast(T('deleted_ok'),'success');
+}
+
+// ══════════════════════════════════════════
+// YOZUVLAR + TAHRIRLASH
+// ══════════════════════════════════════════
+function setLogsFilter(f,el){
+  logsFilter=f;
+  document.querySelectorAll('#logsTabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderLogs();
+}
+
+function renderLogs(){
+  let logs=cache.logs;
+  const now=Date.now();
+  const search=(document.getElementById('logsSearch')?.value||'').toLowerCase();
+  if(logsFilter==='today') logs=logs.filter(l=>new Date(l.created_at).toDateString()===new Date().toDateString());
+  else if(logsFilter==='week') logs=logs.filter(l=>now-new Date(l.created_at).getTime()<7*86400000);
+  if(search) logs=logs.filter(l=>l.worker_name.toLowerCase().includes(search)||l.product_name.toLowerCase().includes(search));
+
+  document.getElementById('logsTbody').innerHTML=logs.map(l=>`
+    <tr>
+      <td><div class="flex items-center gap-2">
+        <div class="avatar" style="background:${avatarColor(l.worker_name)};width:26px;height:26px;font-size:10px;border-radius:7px;">${l.worker_name[0]}</div>
+        <span class="fw7 truncate" style="max-width:90px;">${l.worker_name}</span>
+      </div></td>
+      <td class="hide-mobile"><span class="badge badge-yellow text-xs">${l.department_name}</span></td>
+      <td>${l.product_name} <code class="text-muted" style="font-size:10px;">${l.product_code}</code></td>
+      <td class="mono">${l.quantity}</td>
+      <td class="green fw7 mono">${fmtNum(l.total_amount)}</td>
+      <td class="hide-mobile"><span class="badge ${l.added_by==='admin'?'badge-purple':'badge-blue'} text-xs">${l.added_by==='admin'?T('by_admin'):T('by_worker')}</span></td>
+      <td class="text-muted text-xs">${timeAgo(l.created_at)}</td>
+      <td><button class="btn btn-ghost btn-xs" onclick="openLogEdit(${l.id})">✏️</button></td>
+    </tr>`
+  ).join('')||`<tr><td colspan="8"><div class="empty-state"><div class="ei">📝</div><p>${T('no_data')}</p></div></td></tr>`;
+}
+
+function openLogEdit(logId){
+  const l=cache.logs.find(x=>x.id==logId);
+  if(!l) return;
+  document.getElementById('eLogId').value=logId;
+  document.getElementById('eLogProduct').value=l.product_name+' ('+l.product_code+')';
+  document.getElementById('eLogQty').value=l.quantity;
+  document.getElementById('eLogTotal').value=fmtNum(l.total_amount);
+  document.getElementById('eLogPrice').value=l.product_price||(l.total_amount/l.quantity)||0;
+  openModal('logEditModal');
+}
+
+function recalcEditLog(){
+  const qty=parseFloat(document.getElementById('eLogQty').value)||0;
+  const price=parseFloat(document.getElementById('eLogPrice').value)||0;
+  document.getElementById('eLogTotal').value=qty&&price?fmtNum(qty*price)+' so\'m':'';
+}
+
+async function saveLogEdit(){
+  const id=document.getElementById('eLogId').value;
+  const qty=parseInt(document.getElementById('eLogQty').value);
+  const price=parseFloat(document.getElementById('eLogPrice').value)||0;
+  if(isNaN(qty)||qty<0) return showAlert('logEditAlert','error','❌ '+T('error_fill'));
+
+  if(qty===0){
+    if(!confirm(T('del_confirm'))) return;
+    await supa.from('work_logs').delete().eq('id',id);
+    closeModal('logEditModal');
+    await loadAll(); renderLogs();
+    toast(T('deleted_ok'),'success');
+    return;
+  }
+  const newTotal=qty*price;
+  const { error }=await supa.from('work_logs').update({quantity:qty,total_amount:newTotal}).eq('id',id);
+  if(error) return showAlert('logEditAlert','error','❌ '+error.message);
+  closeModal('logEditModal');
+  await loadAll(); renderLogs();
+  toast(T('saved_ok'),'success');
+}
+
+async function deleteLog(){
+  const id=document.getElementById('eLogId').value;
+  if(!confirm(T('del_confirm'))) return;
+  await supa.from('work_logs').delete().eq('id',id);
+  closeModal('logEditModal');
+  await loadAll(); renderLogs();
+  toast(T('deleted_ok'),'success');
+}
+
+// ══════════════════════════════════════════
+// QO'LDA KIRITISH
+// ══════════════════════════════════════════
+function renderManual(){
+  const workers=cache.workers.filter(w=>w.is_active!==false);
+  document.getElementById('manWorker').innerHTML=
+    `<option value="">${T('th_worker')} →</option>`+
+    workers.map(w=>`<option value="${w.id}" data-dept="${w.department_id}">${w.full_name} (${w.department_name})</option>`).join('');
+  document.getElementById('manDept').innerHTML=
+    cache.departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  fillManualProducts();
+}
+
+function fillManualProducts(){
+  const wid=document.getElementById('manWorker').value;
+  const w=cache.workers.find(x=>x.id==wid);
+  if(w){
+    document.getElementById('manDept').value=w.department_id;
+  }
+  fillManualProductsByDept();
+}
+
+function fillManualProductsByDept(){
+  const did=document.getElementById('manDept').value;
+  const prods=cache.products.filter(p=>p.is_active!==false&&(did?p.department_id==did:true));
+  document.getElementById('manProduct').innerHTML=
+    `<option value="">${T('th_product')} →</option>`+
+    prods.map(p=>`<option value="${p.id}" data-price="${p.price}">${p.name} (${p.code}) — ${fmtNum(p.price)}</option>`).join('');
+  calcManual();
+}
+
+function calcManual(){
+  const sel=document.getElementById('manProduct').selectedOptions[0];
+  const qty=parseFloat(document.getElementById('manQty').value)||0;
+  const price=parseFloat(sel?.dataset.price)||0;
+  document.getElementById('manTotal').value=qty&&price?(fmtNum(qty*price)+' so\'m'):'';
+}
+
+async function addManualLog(){
+  const wid=document.getElementById('manWorker').value;
+  const pid=document.getElementById('manProduct').value;
+  const qty=parseInt(document.getElementById('manQty').value);
+  const note=document.getElementById('manNote').value.trim();
+  if(!wid||!pid||!qty||qty<1) return showAlert('manualAlert','error',T('error_fill'));
+  const p=cache.products.find(x=>x.id==pid);
+  const { error }=await supa.from('work_logs').insert({
+    worker_id:parseInt(wid), product_id:parseInt(pid),
+    quantity:qty, total_amount:qty*p.price, note, added_by:'admin'
+  });
+  if(error) return showAlert('manualAlert','error','❌ '+error.message);
+  document.getElementById('manQty').value='';
+  document.getElementById('manNote').value='';
+  document.getElementById('manTotal').value='';
+  toast(T('saved_ok'),'success');
+  await loadAll();
+}
+
+// ══════════════════════════════════════════
+// HISOBOTLAR + PDF
+// ══════════════════════════════════════════
+function renderReports(){
+  // Report cards updated with current lang
+  document.querySelectorAll('.report-card [data-i18n]').forEach(el=>{
+    el.textContent=T(el.getAttribute('data-i18n'));
+  });
+}
+
+function genReport(type){
+  if(type==='today') genTodayPDF();
+  else if(type==='month') genMonthPDF();
+  else if(type==='dept') genDeptPDF();
+}
+
+function genTodayPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const today = new Date().toDateString();
+  const logs = cache.logs.filter(l=>new Date(l.created_at).toDateString()===today);
+  const total = logs.reduce((s,l)=>s+l.total_amount,0);
+  const dateStr = new Date().toLocaleDateString('uz-UZ');
+
+  // Header
+  doc.setFillColor(13,15,26);
+  doc.rect(0,0,210,30,  'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica','bold');
+  doc.text('NINA — '+T('rep_today').toUpperCase(), 15, 15);
+  doc.setFontSize(10);
+  doc.setFont('helvetica','normal');
+  doc.text(dateStr, 15, 22);
+
+  doc.setTextColor(0,0,0);
+  let y = 40;
+
+  // Summary box
+  doc.setFillColor(240,248,255);
+  doc.roundedRect(15,y,180,20,3,3,'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica','bold');
+  doc.text(T('th_sum')+': '+fmtNum(total)+' so\'m', 20, y+8);
+  doc.text(T('th_qty')+': '+logs.reduce((s,l)=>s+l.quantity,0)+' dona', 20, y+15);
+  doc.text(T('nav_workers')+': '+new Set(logs.map(l=>l.worker_id)).size+' ta', 100, y+8);
+  y+=28;
+
+  // Table header
+  doc.setFillColor(91,141,248);
+  doc.rect(15,y,180,8,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','bold');
+  doc.text(T('th_worker'), 17, y+5.5);
+  doc.text(T('th_product'), 70, y+5.5);
+  doc.text(T('th_qty'), 130, y+5.5);
+  doc.text(T('th_sum'), 155, y+5.5);
+  doc.text(T('th_time'), 175, y+5.5);
+  y+=10;
+
+  doc.setTextColor(30,37,64);
+  doc.setFont('helvetica','normal');
+  logs.forEach((l,i)=>{
+    if(y>270){ doc.addPage(); y=20; }
+    if(i%2===0){ doc.setFillColor(248,250,255); doc.rect(15,y-2,180,7,'F'); }
+    doc.setFontSize(8);
+    doc.text((l.worker_name||'').substring(0,20), 17, y+3);
+    doc.text((l.product_name||'').substring(0,22), 70, y+3);
+    doc.text(String(l.quantity), 133, y+3);
+    doc.text(fmtNum(l.total_amount), 152, y+3);
+    const dt=new Date(l.created_at);
+    doc.text(dt.getHours()+':'+String(dt.getMinutes()).padStart(2,'0'), 177, y+3);
+    y+=7;
+  });
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150,150,150);
+  doc.text(T('pdf_generated')+': '+new Date().toLocaleString('uz-UZ'), 15, 285);
+  doc.text('Nina Admin Panel v2.0', 155, 285);
+
+  doc.save('nina-bugungi-'+dateStr.replace(/\./g,'-')+'.pdf');
+  toast('📄 PDF yuklab olindi!', 'success');
+}
+
+function genMonthPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const logs = cache.logs.filter(l=>new Date(l.created_at)>=monthStart);
+  const dateStr = new Date().toLocaleDateString('uz-UZ',{month:'long',year:'numeric'});
+
+  // Header
+  doc.setFillColor(13,15,26);
+  doc.rect(0,0,210,30,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica','bold');
+  doc.text('NINA — '+T('rep_month').toUpperCase(), 15, 15);
+  doc.setFontSize(10);
+  doc.setFont('helvetica','normal');
+  doc.text(dateStr, 15, 22);
+
+  // Group by worker
+  const workerMap={};
+  logs.forEach(l=>{
+    if(!workerMap[l.worker_id]) workerMap[l.worker_id]={name:l.worker_name,dept:l.department_name,total:0,qty:0};
+    workerMap[l.worker_id].total+=l.total_amount;
+    workerMap[l.worker_id].qty+=l.quantity;
+  });
+  const workers=Object.values(workerMap).sort((a,b)=>b.total-a.total);
+  const grandTotal=workers.reduce((s,w)=>s+w.total,0);
+
+  let y=40;
+  // Summary
+  doc.setTextColor(0,0,0);
+  doc.setFillColor(240,255,248);
+  doc.roundedRect(15,y,180,14,3,3,'F');
+  doc.setFontSize(11);
+  doc.setFont('helvetica','bold');
+  doc.text(T('th_sum')+' ('+T('nav_workers')+'): '+fmtNum(grandTotal)+' so\'m', 20, y+9);
+  y+=22;
+
+  // Table
+  doc.setFillColor(52,211,153);
+  doc.rect(15,y,180,8,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','bold');
+  doc.text('#', 17, y+5.5);
+  doc.text(T('th_worker'), 25, y+5.5);
+  doc.text(T('th_dept'), 95, y+5.5);
+  doc.text(T('th_qty'), 140, y+5.5);
+  doc.text(T('th_sum'), 160, y+5.5);
+  y+=10;
+
+  doc.setTextColor(30,37,64);
+  doc.setFont('helvetica','normal');
+  workers.forEach((w,i)=>{
+    if(y>270){ doc.addPage(); y=20; }
+    if(i%2===0){ doc.setFillColor(248,255,252); doc.rect(15,y-2,180,8,'F'); }
+    doc.setFontSize(9);
+    doc.text(String(i+1), 17, y+4);
+    doc.text((w.name||'').substring(0,25), 25, y+4);
+    doc.text((w.dept||'').substring(0,18), 95, y+4);
+    doc.text(String(w.qty), 143, y+4);
+    doc.setFont('helvetica','bold');
+    doc.text(fmtNum(w.total)+' so\'m', 158, y+4);
+    doc.setFont('helvetica','normal');
+    y+=8;
+  });
+
+  // Total row
+  doc.setFillColor(52,211,153);
+  doc.rect(15,y,180,9,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(10);
+  doc.text('JAMI:', 25, y+6);
+  doc.text(fmtNum(grandTotal)+' so\'m', 158, y+6);
+
+  doc.setFontSize(8);
+  doc.setTextColor(150,150,150);
+  doc.text(T('pdf_generated')+': '+new Date().toLocaleString('uz-UZ'), 15, 285);
+  doc.save('nina-oylik-'+new Date().getMonth()+'.pdf');
+  toast('📊 PDF yuklab olindi!', 'success');
+}
+
+function genDeptPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const dateStr = new Date().toLocaleDateString('uz-UZ');
+
+  doc.setFillColor(13,15,26);
+  doc.rect(0,0,210,30,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica','bold');
+  doc.text('NINA — '+T('rep_dept').toUpperCase(), 15, 15);
+  doc.setFontSize(10);
+  doc.text(dateStr, 15, 22);
+
+  const deptMap={};
+  cache.logs.forEach(l=>{
+    const d=l.department_name||'—';
+    if(!deptMap[d]) deptMap[d]={total:0,qty:0,workers:new Set()};
+    deptMap[d].total+=l.total_amount;
+    deptMap[d].qty+=l.quantity;
+    deptMap[d].workers.add(l.worker_id);
+  });
+
+  let y=40;
+  doc.setTextColor(0,0,0);
+  doc.setFillColor(167,139,250);
+  doc.rect(15,y,180,8,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','bold');
+  doc.text(T('th_dept'), 17, y+5.5);
+  doc.text(T('nav_workers'), 80, y+5.5);
+  doc.text(T('th_qty'), 120, y+5.5);
+  doc.text(T('th_sum'), 155, y+5.5);
+  y+=10;
+
+  doc.setTextColor(30,37,64);
+  Object.entries(deptMap).sort((a,b)=>b[1].total-a[1].total).forEach(([name,d],i)=>{
+    if(y>270){ doc.addPage(); y=20; }
+    if(i%2===0){ doc.setFillColor(250,248,255); doc.rect(15,y-2,180,8,'F'); }
+    doc.setFontSize(9);
+    doc.setFont('helvetica','bold');
+    doc.text(name.substring(0,30), 17, y+4);
+    doc.setFont('helvetica','normal');
+    doc.text(String(d.workers.size), 85, y+4);
+    doc.text(String(d.qty), 123, y+4);
+    doc.text(fmtNum(d.total)+' so\'m', 153, y+4);
+    y+=8;
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150,150,150);
+  doc.text(T('pdf_generated')+': '+new Date().toLocaleString('uz-UZ'), 15, 285);
+  doc.save('nina-bolimlar-'+dateStr.replace(/\./g,'-')+'.pdf');
+  toast('🏢 PDF yuklab olindi!', 'success');
+}
+
+// ══════════════════════════════════════════
+// SOZLAMALAR
+// ══════════════════════════════════════════
+function renderSettings(){
+  applyLang();
+  applyTheme();
+  document.getElementById('setSupaUrl').value=SUPABASE_URL;
+  document.getElementById('setSupaKey').value=SUPABASE_KEY;
+  document.getElementById('setLogin').value=ADMIN_LOGIN;
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+function fmtNum(n){ return Math.round(n||0).toLocaleString('uz-UZ'); }
+
+function timeAgo(d){
+  const m=Math.floor((Date.now()-new Date(d))/60000);
+  if(m<1) return 'Hozir';
+  if(m<60) return m+' daq';
+  const h=Math.floor(m/60);
+  if(h<24) return h+' soat';
+  return Math.floor(h/24)+' kun';
+}
+
+const AVATAR_COLORS = [
+  '#5b8df8','#a78bfa','#34d399','#fb923c','#f87171',
+  '#fbbf24','#60a5fa','#c084fc','#4ade80','#f472b6'
+];
+function avatarColor(name){
+  let h=0;
+  for(let i=0;i<(name||'').length;i++) h=(h+name.charCodeAt(i))%AVATAR_COLORS.length;
+  return AVATAR_COLORS[h];
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toast(msg, type='info'){
+  const c=document.getElementById('toastContainer');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(()=>el.remove(), 3000);
+}
+
+function showAlert(id, type, msg){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.innerHTML=`<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(()=>el.innerHTML='', 3500);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg=>
+  bg.addEventListener('click', e=>{ if(e.target===bg) bg.classList.remove('open'); })
+);
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+applyTheme();
+applyLang();
+initTWA();
+
+if(authed){
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('appPage').classList.remove('hidden');
+  init();
+} else {
+  document.getElementById('loadingOverlay').style.display='none';
+  document.getElementById('loginPage').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
